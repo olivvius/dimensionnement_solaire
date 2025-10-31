@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimensionnement Solaire - Bilan de Consommation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8" 
+         x-data="solarSizer()" 
+         x-init="init()">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-slate-900">Dimensionnement Solaire</h1>
+            <p class="text-lg text-slate-600 mt-2">Calculez votre consommation journalière</p>
+        </header>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8" x-cloak>
+            
+            <!-- Tableau des appareils -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Appareil</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Puissance (W)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Durée / jour (h)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Énergie / jour (Wh)</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        <template x-for="device in userDevices" :key="device.id">
+                            <tr>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <input type="text" x-model="device.nom" class="w-full p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <input type="number" step="0.1" min="0" x-model.number="device.puissance" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <input type="number" step="0.1" min="0" x-model.number="device.duree" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap font-semibold" x-text="device.energie.toFixed(2)"></td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <button @click="removeDevice(device.id)" class="text-red-500 hover:text-red-700 p-1 rounded-full transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formulaire d'ajout -->
+            <div class="mt-6 flex flex-wrap items-center gap-4 p-4 border-t border-slate-200">
+                <h3 class="text-lg font-semibold w-full sm:w-auto">Ajouter un appareil :</h3>
+                <select x-model="selectedDevice" @change="prefillDevice()" class="p-2 border rounded-md bg-white focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">-- Choisir un appareil --</option>
+                    <template x-for="d in availableDevices">
+                        <option :value="d.nom" x-text="d.nom"></option>
+                    </template>
+                    <option value="Autre">Autre...</option>
+                </select>            </div>
+
+            <!-- Total -->
+            <div class="mt-8 text-right">
+                <p class="text-2xl font-bold text-slate-900">
+                    Énergie journalière totale : 
+                    <span class="text-indigo-600" x-text="totalEnergy.toFixed(2) + ' Wh'"></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Section de Dimensionnement -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-8" x-cloak>
+            <h2 class="text-2xl font-bold text-slate-900 mb-6 border-b pb-4">Dimensionnement du Système Solaire</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                
+                <!-- Colonne 1: Paramètres & Panneaux -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-2">1. Paramètres du Système</h3>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="autonomy" class="font-medium text-slate-700">Jours d'autonomie souhaités :</label>
+                        <input type="number" id="autonomy" min="1" x-model.number="autonomyDays" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="panel_power" class="font-medium text-slate-700">Puissance d'un panneau (Wc) :</label>
+                        <input type="number" id="panel_power" min="50" step="10" x-model.number="panelPower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="battery_voltage" class="font-medium text-slate-700">Tension du parc batteries (V) :</label>
+                        <select id="battery_voltage" x-model.number="batteryVoltage" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="12">12</option>
+                            <option value="24">24</option>
+                            <option value="48">48</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="panel_voltage" class="font-medium text-slate-700">Tension des panneaux (V) :</label>
+                        <select id="panel_voltage" x-model.number="panelVoltage" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="12">12</option>
+                            <option value="24">24</option>
+                            <option value="48">48</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="inverter_solar_power" class="font-medium text-slate-700">Puissance max entrée solaire onduleur (W) :</label>
+                        <input type="number" id="inverter_solar_power" min="0" step="100" x-model.number="inverterSolarInputPower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="battery_discharge_power" class="font-medium text-slate-700">Puissance max sortie batterie (W) :</label>
+                        <input type="number" id="battery_discharge_power" min="0" step="100" x-model.number="batteryMaxDischargePower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="distance_panels_inverter" class="font-medium text-slate-700">Distance panneaux -> onduleur (m) :</label>
+                        <input type="number" id="distance_panels_inverter" min="0" step="1" x-model.number="distancePanelsToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
+                        <label for="distance_batteries_inverter" class="font-medium text-slate-700">Distance batteries -> onduleur (m) :</label>
+                        <input type="number" id="distance_batteries_inverter" min="0" step="1" x-model.number="distanceBatteriesToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Colonne 2: Résultats -->
+                <div class="space-y-3">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-2">2. Résultats Calculés</h3>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600">Puissance PV nécessaire (min) :</span>
+                        <span class="font-bold text-slate-800" x-text="requiredPower.toFixed(0) + ' Wc'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
+                        <span class="font-medium text-slate-600">Nombre de panneaux :</span>
+                        <span class="font-bold text-slate-800" x-text="panelCount"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600">Puissance crête totale installée :</span>
+                        <span class="font-bold text-slate-800" x-text="totalPanelPower + ' Wc'"></span>
+                    </div>
+                     <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg mt-4">
+                        <span class="font-medium text-slate-600">Énergie batterie nécessaire :</span>
+                        <span class="font-bold text-indigo-600" x-text="requiredBatteryCapacity.toFixed(0) + ' Wh'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600" x-text="'Capacité batterie (' + batteryVoltage + 'V) :'"></span>
+                        <span class="font-bold text-indigo-600" x-text="requiredBatteryAh.toFixed(0) + ' Ah'"></span>
+                    </div>
+                </div>
+
+                <!-- Colonne 3: Caractéristiques Circuit -->
+                <div class="space-y-3 md:col-span-2 border-t pt-4 mt-4">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-2">3. Caractéristiques du Circuit</h3>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600">Demande de puissance de pointe :</span>
+                        <span class="font-bold text-slate-800" x-text="peakPowerDemand.toFixed(0) + ' W'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
+                        <span class="font-medium text-slate-600">Ampérage de sortie (220V) :</span>
+                        <span class="font-bold text-slate-800" x-text="acOutputAmperage.toFixed(1) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600" x-text="'Ampérage DC max (Panneaux ' + panelVoltage + 'V) :'"></span>
+                        <span class="font-bold text-slate-800" x-text="maxDcAmperage.toFixed(1) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
+                        <span class="font-medium text-slate-600">Ampérage max aux batteries :</span>
+                        <span class="font-bold text-slate-800" x-text="batteryAmperage.toFixed(1) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600">Fusible protection batteries :</span>
+                        <span class="font-bold text-red-600" x-text="batteryFuseAmperage.toFixed(0) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
+                        <span class="font-medium text-slate-600">Disjoncteur coffret DC :</span>
+                        <span class="font-bold text-red-600" x-text="dcBreakerAmperage + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600">Section câble Panneaux -> Onduleur :</span>
+                        <template x-if="panelCableSection">
+                            <span class="font-bold text-red-600" x-text="panelCableSection + ' mm²'"></span>
+                        </template>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
+                        <span class="font-medium text-slate-600">Section câble Batteries -> Onduleur :</span>
+                        <template x-if="batteryCableSection">
+                            <span class="font-bold text-red-600" x-text="batteryCableSection + ' mm²'"></span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        function solarSizer() {
+            return {
+                availableDevices: [],
+                userDevices: [],
+                selectedDevice: '',
+                nextId: 0,
+                sunHours: { summer: 5, winter: 1.67 },
+                autonomyDays: 2,
+                panelPower: 400,
+                batteryVoltage: 24,
+                panelVoltage: 24,
+                inverterSolarInputPower: 1500,
+                batteryMaxDischargePower: 3000,
+                distancePanelsToInverter: 10,
+                distanceBatteriesToInverter: 2,
+                sectionsData: null,
+
+                init() {
+                    Promise.all([
+                        fetch('/api/devices').then(res => res.json()),
+                        fetch('/api/sections').then(res => res.json()),
+                        fetch('data/devices.json').then(res => res.json()),
+                        fetch('data/sections.json').then(res => res.json())
+                    ]).then(([devicesData, sectionsData]) => {
+                            this.availableDevices = devicesData;
+                            this.sectionsData = sectionsData;
+
+                            // Pré-remplir avec quelques appareils pour l'exemple
+                            this.addDeviceByName('Lampe');
+                            this.addDeviceByName('Ordi portable');
+                            this.addDeviceByName('Charge téléphone');
+                            this.addDeviceByName('Box internet');
+                            this.addDeviceByName('Écran');
+                        }).catch(error => {
+                            console.error("Erreur lors du chargement des données initiales:", error);
+                        });
+                },
+
+                prefillDevice() {
+                    if (!this.selectedDevice) return;
+                    this.addDevice();
+                },
+
+                addDeviceByName(name) {
+                    const deviceData = this.availableDevices.find(d => d.nom === name);
+                    if (deviceData) this.createDevice(deviceData);
+                },
+
+                addDevice() {
+                    let deviceData;
+                    if (this.selectedDevice === 'Autre') {
+                        deviceData = { nom: '', puissance: 0, duree_utilisation: 1 };
+                    } else if (this.selectedDevice) {
+                        deviceData = this.availableDevices.find(d => d.nom === this.selectedDevice);
+                    }
+
+                    if (deviceData) {
+                        this.createDevice(deviceData);
+                        this.selectedDevice = '';
+                    }
+                },
+
+                createDevice(data) {
+                    if (!data) return;
+                    const device = {
+                        id: this.nextId++,
+                        nom: data.nom,
+                        puissance: data.puissance,
+                        duree: data.duree_utilisation,
+                        energie: data.puissance * data.duree_utilisation
+                    };
+                    this.userDevices.push(device);
+                },
+
+
+                removeDevice(id) {
+                    this.userDevices = this.userDevices.filter(d => d.id !== id);
+                },
+
+                calculateEnergy(device) {
+                    device.energie = device.puissance * device.duree;
+                },
+
+                get totalEnergy() {
+                    return this.userDevices.reduce((total, device) => total + device.energie, 0);
+                },
+
+                get requiredPower() {
+                    return this.totalEnergy / this.sunHours.winter;
+                },
+
+                get requiredBatteryCapacity() {
+                    const days = Math.max(1, this.autonomyDays || 1);
+                    return this.totalEnergy * days;
+                },
+
+                get panelCount() {
+                    return (this.panelPower > 0) ? Math.ceil(this.requiredPower / this.panelPower) : 0;
+                },
+
+                get totalPanelPower() {
+                    return this.panelCount * this.panelPower;
+                },
+
+                get requiredBatteryAh() {
+                    if (this.batteryVoltage <= 0) return 0;
+                    const rawAh = this.requiredBatteryCapacity / this.batteryVoltage;
+                    return Math.ceil(rawAh / 50) * 50;
+                },
+
+                get peakPowerDemand() {
+                    return this.userDevices.reduce((sum, device) => sum + (device.puissance || 0), 0);
+                },
+
+                get acOutputAmperage() {
+                    return (this.batteryMaxDischargePower > 0) ? this.batteryMaxDischargePower / 220 : 0;
+                },
+
+                get maxDcAmperage() {
+                    if (this.inverterSolarInputPower <= 0) return 0;
+                    if (this.panelVoltage === 12) return this.inverterSolarInputPower / 19;
+                    if (this.panelVoltage === 24) return this.inverterSolarInputPower / 34;
+                    return 0; // Pour 48V ou autre, à définir
+                },
+
+                get batteryAmperage() {
+                    if (this.batteryVoltage <= 0 || this.batteryMaxDischargePower <= 0) return 0;
+                    return this.batteryMaxDischargePower / this.batteryVoltage;
+                },
+
+                get batteryFuseAmperage() {
+                    if (this.batteryAmperage <= 0) return 0;
+                    return Math.ceil(this.batteryAmperage / 50) * 50;
+                },
+
+                get dcBreakerAmperage() {
+                    const amp = this.maxDcAmperage;
+                    const thresholds = [0, 6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+                    const values =     ["6", "10", "16", "20", "25", "32", "40", "50", "63", "80", "100", "125"];
+
+                    for (let i = thresholds.length - 1; i >= 0; i--) {
+                        if (amp >= thresholds[i]) {
+                            return values[i];
+                        }
+                    }
+                    return "0";
+                },
+
+                findCableSection(amperage, distance, voltage) {
+                    if (!this.sectionsData || amperage <= 0 || distance <= 0) {
+                        return "N/A";
+                    }
+
+                    const voltageKey = `data_${voltage}v`;
+                    if (!this.sectionsData[voltageKey]) {
+                        return `Tension ${voltage}V non supportée`;
+                    }
+
+                    const table = this.sectionsData[voltageKey];
+                    const sections = table.columns.slice(1).map(Number); // ex: [0.75, 1, 1.5, ...]
+
+                    // Trouver la ligne d'ampérage la plus proche (supérieure ou égale)
+                    let bestRow = null;
+                    for (const row of table.data) {
+                        const rowAmp = parseFloat(row[0]);
+                        if (rowAmp >= amperage) {
+                            bestRow = row;
+                            break;
+                        }
+                    }
+                    if (!bestRow) bestRow = table.data[table.data.length - 1]; // Prendre la dernière si on dépasse
+
+                    // Trouver la section de câble adéquate
+                    for (let i = 0; i < sections.length; i++) {
+                        const section = sections[i];
+                        const maxLength = bestRow[i + 1];
+                        if (maxLength !== null && distance <= maxLength) {
+                            return section.toString();
+                        }
+                    }
+
+                    return `Distance trop grande (> ${bestRow[bestRow.length - 1]}m)`;
+                },
+
+                get panelCableSection() {
+                    return this.findCableSection(this.maxDcAmperage, this.distancePanelsToInverter, this.panelVoltage);
+                },
+
+                get batteryCableSection() {
+                    return this.findCableSection(this.batteryAmperage, this.distanceBatteriesToInverter, this.batteryVoltage);
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

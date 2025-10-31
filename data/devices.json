@@ -1,0 +1,11 @@
+
+[
+  { "nom": "Lampe", "puissance": 6, "duree_utilisation": 10 },
+  { "nom": "Ordi portable", "puissance": 40, "duree_utilisation": 6 },
+  { "nom": "Charge téléphone", "puissance": 8, "duree_utilisation": 1 },
+  { "nom": "Enceintes son", "puissance": 12, "duree_utilisation": 3 },
+  { "nom": "Pompe à eau douche", "puissance": 10, "duree_utilisation": 0.2 },
+  { "nom": "Écran", "puissance": 25, "duree_utilisation": 4 },
+  { "nom": "Bouilloire", "puissance": 610, "duree_utilisation": 0.25 },
+  { "nom": "Box internet", "puissance": 7, "duree_utilisation": 24 }
+]
