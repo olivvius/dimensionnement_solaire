@@ -111,7 +111,6 @@
                         <select id="panel_voltage" x-model.number="panelVoltage" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="12">12</option>
                             <option value="24">24</option>
-                            <option value="48">48</option>
                         </select>
                     </div>
                     <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
@@ -123,11 +122,11 @@
                         <input type="number" id="battery_discharge_power" min="0" step="100" x-model.number="batteryMaxDischargePower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="distance_panels_inverter" class="font-medium text-slate-700">Distance panneaux -> onduleur (m) :</label>
+                        <label for="distance_panels_inverter" class="font-medium text-slate-700">Distance aller simple panneaux -> onduleur (m) :</label>
                         <input type="number" id="distance_panels_inverter" min="0" step="1" x-model.number="distancePanelsToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="distance_batteries_inverter" class="font-medium text-slate-700">Distance batteries -> onduleur (m) :</label>
+                        <label for="distance_batteries_inverter" class="font-medium text-slate-700">Distance aller simple batteries -> onduleur (m) :</label>
                         <input type="number" id="distance_batteries_inverter" min="0" step="1" x-model.number="distanceBatteriesToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                 </div>
