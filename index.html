@@ -220,8 +220,6 @@
 
                 init() {
                     Promise.all([
-                        fetch('/api/devices').then(res => res.json()),
-                        fetch('/api/sections').then(res => res.json()),
                         fetch('data/devices.json').then(res => res.json()),
                         fetch('data/sections.json').then(res => res.json())
                     ]).then(([devicesData, sectionsData]) => {
@@ -398,3 +396,4 @@
 
 </body>
 </html>
+  
