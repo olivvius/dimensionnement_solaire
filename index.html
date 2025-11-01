@@ -6,6 +6,8 @@
     <title>Dimensionnement Solaire - Bilan de Consommation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <!-- jsPDF Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script> <!-- jsPDF AutoTable Plugin -->
     <style>
         [x-cloak] { display: none !important; }
         .tooltip-container {
@@ -459,6 +461,16 @@
             </div>
         </div>
 
+        <!-- Bouton Export PDF -->
+        <div class="mt-8 text-center" x-cloak>
+            <button @click="exportToPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2 -mt-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                </svg>
+                Exporter en PDF
+            </button>
+        </div>
+
     <script>
         function solarSizer() {
             return {
@@ -676,6 +688,97 @@
 
                 get batteryCableSection() {
                     return this.findCableSection(this.batteryAmperage, this.distanceBatteriesToInverter, this.batteryVoltage);
+                },
+
+                exportToPDF() {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Titre
+                    doc.setFontSize(20);
+                    doc.text("Rapport de Dimensionnement Solaire", 105, 20, { align: 'center' });
+                    doc.setFontSize(10);
+                    doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 27, { align: 'center' });
+
+                    // 1. Bilan de consommation
+                    doc.setFontSize(14);
+                    doc.text("1. Bilan de Consommation", 14, 40);
+
+                    const tableBody = this.userDevices.map(d => [
+                        d.nom,
+                        d.puissance.toFixed(1),
+                        d.duree.toFixed(1),
+                        d.energie.toFixed(1)
+                    ]);
+
+                    doc.autoTable({
+                        startY: 45,
+                        head: [['Appareil', 'Puissance (W)', 'Durée/jour (h)', 'Énergie/jour (Wh)']],
+                        body: tableBody,
+                        foot: [['Total (avec pertes de 10%)', '', '', `${this.totalEnergy.toFixed(0)} Wh`]],
+                        theme: 'grid',
+                        styles: { fontSize: 8, cellPadding: 1.5 },
+                        headStyles: { fillColor: [41, 128, 185], fontSize: 9 },
+                        footStyles: { fillColor: [236, 240, 241], textColor: [44, 62, 80], fontStyle: 'bold', fontSize: 9 }
+                    });
+
+                    let lastY = doc.lastAutoTable.finalY + 10;
+
+                    // 2. Paramètres Utilisateur
+                    doc.setFontSize(14);
+                    doc.text("2. Paramètres Utilisateur", 14, lastY);
+                    lastY += 6;
+
+                    const addLine = (label, value) => {
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(label, 14, lastY);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(value, 100, lastY);
+                        lastY += 6;
+                    };
+
+                    addLine("Jours d'autonomie souhaités :", `${this.autonomyDays} jours`);
+                    addLine("Localisation en France :", this.locationFrance.charAt(0).toUpperCase() + this.locationFrance.slice(1));
+                    addLine("Inclinaison des panneaux :", `${this.panelInclination}°`);
+                    addLine("Technologie batterie :", this.batteryType === 'lithium' ? 'Lithium' : 'Plomb/Gel');
+                    addLine("Tension du parc batteries :", `${this.batteryVoltage} V`);
+                    addLine("Tension du système solaire :", `${this.panelVoltage} V`);
+                    addLine("Puissance d'un panneau :", `${this.panelPower} Wc`);
+                    addLine("Puissance max onduleur (sortie) :", `${this.inverterOutputPower} W`);
+                    addLine("Puissance max entrée solaire onduleur :", `${this.inverterSolarInputPower} W`);
+                    addLine("Distance panneaux -> onduleur :", `${this.distancePanelsToInverter} m`);
+                    addLine("Distance batteries -> onduleur :", `${this.distanceBatteriesToInverter} m`);
+
+                    lastY += 8;
+
+                    // 3. Résultats du Dimensionnement
+                    doc.setFontSize(14);
+                    doc.text("3. Résultats du Dimensionnement", 14, lastY);
+                    lastY += 4;
+
+                    doc.setFontSize(12);
+                    doc.text("Panneaux Solaires", 14, lastY); lastY += 6;
+                    addLine("Puissance PV nécessaire (min) :", `${this.requiredPower.toFixed(0)} Wc`);
+                    addLine("Nombre de panneaux :", `${this.panelCount} (${this.totalPanelPower} Wc installés)`);
+                    lastY += 5;
+
+                    doc.setFontSize(12);
+                    doc.text("Batteries", 14, lastY); lastY += 6;
+                    addLine("Énergie batterie nécessaire :", `${this.requiredBatteryCapacity.toFixed(0)} Wh`);
+                    addLine(`Capacité à installer (${this.batteryVoltage}V) :`, `${this.requiredBatteryAh.toFixed(0)} Ah`);
+                    lastY += 5;
+
+                    doc.setFontSize(12);
+                    doc.text("Caractéristiques du Circuit", 14, lastY); lastY += 6;
+                    addLine("Demande de puissance de pointe :", `${this.peakPowerDemand.toFixed(0)} W`);
+                    addLine("Fusible protection batteries :", `${this.batteryFuseAmperage.toFixed(0)} A`);
+                    addLine("Section câble Batteries -> Onduleur :", `${this.batteryCableSection} mm² (pour ${this.distanceBatteriesToInverter}m)`);
+                    addLine("Fusible protection DC (panneaux) :", `${this.dcBreakerAmperage} A`);
+                    addLine("Section câble Panneaux -> Onduleur :", `${this.panelCableSection} mm² (pour ${this.distancePanelsToInverter}m)`);
+
+                    // Sauvegarde
+                    doc.save('dimensionnement-solaire.pdf');
                 }
             }
         }
