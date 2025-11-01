@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,44 +8,137 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #334155; /* bg-slate-700 */
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px; /* Half of the width */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: normal;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            text-transform: none;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
+    <script>
+        // Pour éviter le flash de contenu non stylisé (FOUC) en mode sombre
+        if (localStorage.getItem('darkMode') === 'true' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
 
     <div class="container mx-auto p-4 md:p-8" 
          x-data="solarSizer()" 
          x-init="init()">
 
+        <div class="absolute top-4 right-4">
+            <button @click="toggleDarkMode()" class="p-2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" aria-label="Basculer le thème">
+                <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            </button>
+        </div>
+
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-slate-900">Dimensionnement Solaire</h1>
-            <p class="text-lg text-slate-600 mt-2">Calculez votre consommation journalière</p>
+            <h1 class="text-4xl font-bold text-slate-900 dark:text-slate-100">Dimensionnement Solaire</h1>
+
+            <div class="my-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-800 dark:bg-red-900/50 dark:border-red-400 dark:text-red-300 rounded-r-lg text-left" role="alert">
+                <h3 class="font-bold text-lg mb-2">AVERTISSEMENT IMPORTANT</h3>
+                <p class="text-sm">
+                    Cet outil est fourni à titre purement indicatif et éducatif. Les calculs et les suggestions de dimensionnement sont basés sur des formules générales et des hypothèses qui peuvent ne pas correspondre à la réalité de votre projet, de votre localisation géographique ou des normes en vigueur.
+                    <br><br>
+                    <strong>Les résultats générés par cette application ne sauraient en aucun cas remplacer une étude technique complète et personnalisée réalisée par un professionnel qualifié</strong> (bureau d'études, installateur certifié).
+                    <br><br>
+                    L'auteur de cet outil décline toute responsabilité quant à l'exactitude, la pertinence ou l'exhaustivité des informations fournies. L'utilisation de cet outil se fait à vos propres risques et périls. Pour toute installation électrique, il est impératif de faire appel à un professionnel pour garantir la sécurité des biens et des personnes.
+                </p>
+            </div>
+
+            <div class="my-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-800 dark:bg-green-900/50 dark:border-green-400 dark:text-green-300 rounded-r-lg text-left">
+                <h3 class="font-bold text-lg mb-2">Objectif du Dimensionnement</h3>
+                <p class="text-sm">
+                    Ce guide est conçu pour dimensionner un système solaire <strong>100% autonome</strong>, capable de fonctionner toute l'année, y compris durant les mois d'hiver. Les calculs se basent volontairement sur des conditions d'ensoleillement faibles (scénario pessimiste) pour assurer la production d'énergie même dans le pire des cas. Il ne prend pas en compte d'autres sources d'énergie comme un groupe électrogène.
+                    Les calculs de production solaire sont des approximations basées sur la latitude et l'inclinaison, mais peuvent être influencés par l'ombrage, l'état des panneaux, leur propreté, etc. L'outil est optimisé pour des systèmes de petite à moyenne puissance.
+                 </p>
+            </div>
+
+            <div class="my-6 p-4 bg-sky-100 border-l-4 border-sky-500 text-sky-800 dark:bg-sky-900/50 dark:border-sky-400 dark:text-sky-300 rounded-r-lg text-left">
+                <h3 class="font-bold text-lg mb-2">Guide des Unités et Symboles</h3>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    <li><strong>W (Watt)</strong> : C'est la puissance "instantanée" d'un appareil. Plus un appareil est puissant, plus il a de Watts.</li>
+                    <li><strong>Wc (Watt-crête)</strong> : C'est la puissance maximale qu'un panneau solaire peut produire dans des conditions idéales. C'est l'unité de référence pour comparer les panneaux.</li>
+                    <li><strong>h (heure)</strong> : C'est la durée d'utilisation, en heures.</li>
+                    <li><strong>Wh (Watt-heure)</strong> : C'est l'énergie consommée. C'est la puissance (W) multipliée par la durée d'utilisation (h).</li>
+                    <li><strong>V (Volt)</strong> : C'est la "tension" du système. Imaginez-la comme la "pression" de l'électricité. Les systèmes solaires fonctionnent souvent en 12V, 24V ou 48V.</li>
+                    <li><strong>A (Ampère)</strong> : C'est le "débit" du courant électrique. Un ampérage élevé signifie que beaucoup d'électricité circule.</li>
+                    <li><strong>Ah (Ampère-heure)</strong> : C'est la capacité de stockage d'une batterie. Une batterie de 100Ah peut fournir un courant de 1A pendant 100 heures (ou 2A pendant 50h, etc.).</li>
+                </ul>
+            </div>
+
+            <p class="text-lg text-slate-600 dark:text-slate-400">Calculez votre consommation journalière</p>
         </header>
 
-        <div class="bg-white p-6 rounded-lg shadow-lg mb-8" x-cloak>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg mb-8" x-cloak>
             
             <!-- Tableau des appareils -->
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead class="bg-slate-50 dark:bg-slate-700">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Appareil</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Puissance (W)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Durée / jour (h)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Énergie / jour (Wh)</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider"></th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Appareil</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <div class="flex items-center gap-1">
+                                    <span>Puissance (W)</span>
+                                    <div class="tooltip-container">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                        <span class="tooltip-text">Indique la puissance instantanée de l'appareil lorsqu'il fonctionne. Cette information se trouve généralement sur l'étiquette de l'appareil ou son chargeur.</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <div class="flex items-center gap-1">
+                                    <span>Durée / jour (h)</span>
+                                    <div class="tooltip-container">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                        <span class="tooltip-text">Estimez combien d'heures par jour cet appareil sera utilisé.</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Énergie / jour (Wh)</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider"></th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
+                    <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                         <template x-for="device in userDevices" :key="device.id">
                             <tr>
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <input type="text" x-model="device.nom" class="w-full p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                <td class="px-4 py-4 whitespace-nowrap min-w-[150px]">
+                                    <input type="text" x-model="device.nom" class="w-full p-1 border rounded-md bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
-                                    <input type="number" step="0.1" min="0" x-model.number="device.puissance" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <input type="number" step="0.1" min="0" x-model.number="device.puissance" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
-                                    <input type="number" step="0.1" min="0" x-model.number="device.duree" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <input type="number" step="0.1" min="0" x-model.number="device.duree" @input="calculateEnergy(device)" class="w-24 p-1 border rounded-md bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap font-semibold" x-text="device.energie.toFixed(2)"></td>
                                 <td class="px-4 py-4 whitespace-nowrap text-center">
@@ -62,9 +155,9 @@
             </div>
 
             <!-- Formulaire d'ajout -->
-            <div class="mt-6 flex flex-wrap items-center gap-4 p-4 border-t border-slate-200">
+            <div class="mt-6 flex flex-wrap items-center gap-4 p-4 border-t border-slate-200 dark:border-slate-700">
                 <h3 class="text-lg font-semibold w-full sm:w-auto">Ajouter un appareil :</h3>
-                <select x-model="selectedDevice" @change="prefillDevice()" class="p-2 border rounded-md bg-white focus:ring-indigo-500 focus:border-indigo-500">
+                <select x-model="selectedDevice" @change="prefillDevice()" class="p-2 border rounded-md bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">-- Choisir un appareil --</option>
                     <template x-for="d in availableDevices">
                         <option :value="d.nom" x-text="d.nom"></option>
@@ -74,125 +167,292 @@
 
             <!-- Total -->
             <div class="mt-8 text-right">
-                <p class="text-2xl font-bold text-slate-900">
+                <p class="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     Énergie journalière totale : 
-                    <span class="text-indigo-600" x-text="totalEnergy.toFixed(2) + ' Wh'"></span>
+                    <span class="text-indigo-600 dark:text-indigo-400" x-text="totalEnergy.toFixed(2) + ' Wh'"></span>
                 </p>
             </div>
         </div>
 
         <!-- Section de Dimensionnement -->
-        <div class="bg-white p-6 rounded-lg shadow-lg mt-8" x-cloak>
-            <h2 class="text-2xl font-bold text-slate-900 mb-6 border-b pb-4">Dimensionnement du Système Solaire</h2>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg mt-8" x-cloak>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">Dimensionnement du Système Solaire</h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 
                 <!-- Colonne 1: Paramètres & Panneaux -->
                 <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-2">1. Paramètres du Système</h3>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="autonomy" class="font-medium text-slate-700">Jours d'autonomie souhaités :</label>
-                        <input type="number" id="autonomy" min="1" x-model.number="autonomyDays" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">1. Paramètres du Système</h3>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="autonomy" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Jours d'autonomie souhaités :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">Le nombre de jours pendant lesquels votre système doit pouvoir fonctionner sans soleil (grâce aux batteries). Une valeur de 2 ou 3 est courante.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="autonomy" min="1" x-model.number="autonomyDays" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="panel_power" class="font-medium text-slate-700">Puissance d'un panneau (Wc) :</label>
-                        <input type="number" id="panel_power" min="50" step="10" x-model.number="panelPower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="battery_type" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Technologie batterie :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La technologie de la batterie influence la profondeur de décharge maximale (DoD) : 50% pour Plomb/Gel, 85% pour Lithium.</span>
+                            </div>
+                        </label>
+                        <select id="battery_type" x-model="batteryType" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="gel-plomb">Plomb/Gel</option>
+                            <option value="lithium">Lithium</option>
+                        </select>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="battery_voltage" class="font-medium text-slate-700">Tension du parc batteries (V) :</label>
-                        <select id="battery_voltage" x-model.number="batteryVoltage" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="location_france" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Localisation en France :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La production solaire en hiver varie selon la latitude. Choisissez la zone la plus proche de chez vous.</span>
+                            </div>
+                        </label>
+                        <select id="location_france" x-model="locationFrance" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="nord">Nord</option>
+                            <option value="milieu">Milieu</option>
+                            <option value="sud">Sud</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="panel_inclination" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Inclinaison des panneaux :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">L'inclinaison optimale en hiver est d'environ 60°. Une pose à plat (0°) réduit fortement la production.</span>
+                            </div>
+                        </label>
+                        <select id="panel_inclination" x-model.number="panelInclination" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="0">0° (à plat)</option>
+                            <option value="30">30°</option>
+                            <option value="60">60° (optimal hiver)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="panel_power" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Puissance d'un panneau (Wc) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">Indiquez la puissance crête d'un seul panneau solaire que vous envisagez d'acheter (ex: 400 Wc).</span>
+                            </div>
+                        </label>
+                        <input type="number" id="panel_power" min="50" step="10" x-model.number="panelPower" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="battery_voltage" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Tension du parc batteries (V) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">C'est la tension de votre système de stockage. Les choix courants sont 12V, 24V ou 48V. Un système en 24V ou 48V est généralement plus efficace pour des besoins importants.</span>
+                            </div>
+                        </label>
+                        <select id="battery_voltage" x-model.number="batteryVoltage" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="12">12</option>
                             <option value="24">24</option>
                             <option value="48">48</option>
                         </select>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="panel_voltage" class="font-medium text-slate-700">Tension des panneaux (V) :</label>
-                        <select id="panel_voltage" x-model.number="panelVoltage" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="panel_voltage" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Tension du systeme solaire (V) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La tension nominale aux bornes du systeme des panneaux solaires. Elle doit être compatible avec votre régulateur de charge et la configuration de votre parc batteries. Pour un seul panneau ou un systeme en parralelle, c'est la tension nominale du panneau. Pour un systeme en série, c'est le nombre de panneau en série multiplié par la tension nominale d'un panneau.</span>
+                            </div>
+                        </label>
+                        <select id="panel_voltage" x-model.number="panelVoltage" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="12">12</option>
                             <option value="24">24</option>
                         </select>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="inverter_solar_power" class="font-medium text-slate-700">Puissance max entrée solaire onduleur (W) :</label>
-                        <input type="number" id="inverter_solar_power" min="0" step="100" x-model.number="inverterSolarInputPower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="inverter_solar_power" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Puissance max entrée solaire onduleur (W) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La puissance maximale que votre onduleur (ou régulateur) peut recevoir des panneaux. Se trouve dans la fiche technique de l'onduleur.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="inverter_solar_power" min="0" step="100" x-model.number="inverterSolarInputPower" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="battery_discharge_power" class="font-medium text-slate-700">Puissance max sortie batterie (W) :</label>
-                        <input type="number" id="battery_discharge_power" min="0" step="100" x-model.number="batteryMaxDischargePower" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="inverter_output_power" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Puissance max onduleur (W) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La puissance maximale que votre onduleur peut délivrer en continu à vos appareils (en Watts). Cette valeur est cruciale et se trouve dans la documentation de l'onduleur.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="inverter_output_power" min="0" step="100" x-model.number="inverterOutputPower" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="distance_panels_inverter" class="font-medium text-slate-700">Distance aller simple panneaux -> onduleur (m) :</label>
-                        <input type="number" id="distance_panels_inverter" min="0" step="1" x-model.number="distancePanelsToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="distance_panels_inverter" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Distance panneaux -> onduleur (m) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La longueur de câble (aller simple) entre vos panneaux solaires et votre onduleur/régulateur.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="distance_panels_inverter" min="0" step="1" x-model.number="distancePanelsToInverter" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50">
-                        <label for="distance_batteries_inverter" class="font-medium text-slate-700">Distance aller simple batteries -> onduleur (m) :</label>
-                        <input type="number" id="distance_batteries_inverter" min="0" step="1" x-model.number="distanceBatteriesToInverter" class="w-24 p-2 border rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-700/50">
+                        <label for="distance_batteries_inverter" class="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>Distance batteries -> onduleur (m) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
+                                <span class="tooltip-text">La longueur de câble (aller simple) entre votre parc de batteries et votre onduleur.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="distance_batteries_inverter" min="0" step="1" x-model.number="distanceBatteriesToInverter" class="w-24 p-2 border rounded-md text-center bg-white dark:bg-slate-600 border-slate-300 dark:border-slate-500 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                 </div>
 
                 <!-- Colonne 2: Résultats -->
                 <div class="space-y-3">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-2">2. Résultats Calculés</h3>
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">2. Résultats Calculés</h3>
                     <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600">Puissance PV nécessaire (min) :</span>
-                        <span class="font-bold text-slate-800" x-text="requiredPower.toFixed(0) + ' Wc'"></span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Puissance PV nécessaire (min) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">C'est la puissance totale que vos panneaux solaires doivent fournir pour recharger vos batteries en une journée, même en hiver.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="requiredPower.toFixed(0) + ' Wc'"></span>
                     </div>
-                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
-                        <span class="font-medium text-slate-600">Nombre de panneaux :</span>
-                        <span class="font-bold text-slate-800" x-text="panelCount"></span>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Nombre de panneaux :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le nombre de panneaux nécessaires, calculé en divisant la puissance PV nécessaire par la puissance d'un seul panneau que vous avez spécifiée.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="panelCount"></span>
                     </div>
                     <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600">Puissance crête totale installée :</span>
-                        <span class="font-bold text-slate-800" x-text="totalPanelPower + ' Wc'"></span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Puissance crête totale installée :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La puissance crête réelle de votre champ solaire, basée sur le nombre de panneaux arrondis à l'unité supérieure.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="totalPanelPower + ' Wc'"></span>
                     </div>
-                     <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg mt-4">
-                        <span class="font-medium text-slate-600">Énergie batterie nécessaire :</span>
-                        <span class="font-bold text-indigo-600" x-text="requiredBatteryCapacity.toFixed(0) + ' Wh'"></span>
+                     <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg mt-4">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Énergie batterie nécessaire :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La capacité totale que votre parc de batteries doit pouvoir stocker, en tenant compte de l'autonomie et de la profondeur de décharge maximale autorisée.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400" x-text="requiredBatteryCapacity.toFixed(0) + ' Wh'"></span>
                     </div>
                     <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600" x-text="'Capacité batterie (' + batteryVoltage + 'V) :'"></span>
-                        <span class="font-bold text-indigo-600" x-text="requiredBatteryAh.toFixed(0) + ' Ah'"></span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span x-text="'Capacité batterie à installer (' + batteryVoltage + 'V) :'"></span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La même capacité de batterie, mais exprimée en Ampères-heures (Ah), l'unité commerciale la plus courante pour les batteries.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400" x-text="requiredBatteryAh.toFixed(0) + ' Ah'"></span>
                     </div>
                 </div>
 
                 <!-- Colonne 3: Caractéristiques Circuit -->
-                <div class="space-y-3 md:col-span-2 border-t pt-4 mt-4">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-2">3. Caractéristiques du Circuit</h3>
+                <div class="space-y-3 md:col-span-2 border-t border-slate-200 dark:border-slate-700 pt-6 mt-4">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">3. Caractéristiques du Circuit</h3>
                     <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600">Demande de puissance de pointe :</span>
-                        <span class="font-bold text-slate-800" x-text="peakPowerDemand.toFixed(0) + ' W'"></span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Demande de puissance de pointe :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La puissance totale qui serait consommée si tous vos appareils fonctionnaient en même temps. Votre onduleur doit pouvoir fournir cette puissance.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="peakPowerDemand.toFixed(0) + ' W'"></span>
                     </div>
-                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
-                        <span class="font-medium text-slate-600">Ampérage de sortie (220V) :</span>
-                        <span class="font-bold text-slate-800" x-text="acOutputAmperage.toFixed(1) + ' A'"></span>
-                    </div>
-                    <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600" x-text="'Ampérage DC max (Panneaux ' + panelVoltage + 'V) :'"></span>
-                        <span class="font-bold text-slate-800" x-text="maxDcAmperage.toFixed(1) + ' A'"></span>
-                    </div>
-                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
-                        <span class="font-medium text-slate-600">Ampérage max aux batteries :</span>
-                        <span class="font-bold text-slate-800" x-text="batteryAmperage.toFixed(1) + ' A'"></span>
-                    </div>
-                    <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600">Fusible protection batteries :</span>
-                        <span class="font-bold text-red-600" x-text="batteryFuseAmperage.toFixed(0) + ' A'"></span>
-                    </div>
-                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
-                        <span class="font-medium text-slate-600">Disjoncteur coffret DC :</span>
-                        <span class="font-bold text-red-600" x-text="dcBreakerAmperage + ' A'"></span>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Ampérage de sortie (220V) :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le courant maximum que l'onduleur fournira sur son circuit de sortie 220V. Utile pour dimensionner le disjoncteur AC en sortie.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="acOutputAmperage.toFixed(1) + ' A'"></span>
                     </div>
                     <div class="flex justify-between text-base p-2">
-                        <span class="font-medium text-slate-600">Section câble Panneaux -> Onduleur :</span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span x-text="'Ampérage DC max (Panneaux ' + panelVoltage + 'V) :'"></span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le courant maximum qui circulera entre les panneaux et l'onduleur. Sert à dimensionner le fusible et la section du câble de ce circuit.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="maxDcAmperage.toFixed(1) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Ampérage max aux batteries :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le courant maximum que l'onduleur tirera sur les batteries. Sert à dimensionner le fusible et la section du câble de ce circuit.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200" x-text="batteryAmperage.toFixed(1) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Fusible protection batteries :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le calibre du fusible (ou disjoncteur) à placer au plus près de la batterie pour la protéger contre les courts-circuits. C'est un élément de sécurité crucial.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-red-600 dark:text-red-400" x-text="batteryFuseAmperage.toFixed(0) + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Fusible protection DC :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">Le calibre du fusible (ou disjoncteur) à placer entre les panneaux et l'onduleur pour protéger l'installation.</span>
+                            </div>
+                        </span>
+                        <span class="font-bold text-red-600 dark:text-red-400" x-text="dcBreakerAmperage + ' A'"></span>
+                    </div>
+                    <div class="flex justify-between text-base p-2">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Section câble Panneaux -> Onduleur :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La section (diamètre) du câble recommandée pour limiter les pertes d'énergie et éviter la surchauffe, en fonction du courant, de la tension et de la distance.</span>
+                            </div>
+                        </span>
                         <template x-if="panelCableSection">
-                            <span class="font-bold text-red-600" x-text="panelCableSection + ' mm²'"></span>
+                            <span class="font-bold text-red-600 dark:text-red-400" x-text="panelCableSection + ' mm²'"></span>
                         </template>
                     </div>
-                    <div class="flex justify-between text-base p-2 bg-slate-100 rounded-lg">
-                        <span class="font-medium text-slate-600">Section câble Batteries -> Onduleur :</span>
+                    <div class="flex justify-between text-base p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                        <span class="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                            <span>Section câble Batteries -> Onduleur :</span>
+                            <div class="tooltip-container">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                                <span class="tooltip-text">La section du câble recommandée pour le circuit de puissance entre les batteries et l'onduleur. Ce câble doit être le plus court et le plus gros possible.</span>
+                            </div>
+                        </span>
                         <template x-if="batteryCableSection">
-                            <span class="font-bold text-red-600" x-text="batteryCableSection + ' mm²'"></span>
+                            <span class="font-bold text-red-600 dark:text-red-400" x-text="batteryCableSection + ' mm²'"></span>
                         </template>
                     </div>
                 </div>
@@ -206,18 +466,26 @@
                 userDevices: [],
                 selectedDevice: '',
                 nextId: 0,
-                sunHours: { summer: 5, winter: 1.67 },
+                darkMode: true, // Valeur par défaut
                 autonomyDays: 2,
+                locationFrance: 'milieu', // nord, milieu, sud
+                panelInclination: 30, // 0, 30, 60
                 panelPower: 400,
+                batteryType: 'gel-plomb',
                 batteryVoltage: 24,
                 panelVoltage: 24,
                 inverterSolarInputPower: 1500,
-                batteryMaxDischargePower: 3000,
+                inverterOutputPower: 3000,
                 distancePanelsToInverter: 10,
                 distanceBatteriesToInverter: 2,
                 sectionsData: null,
 
                 init() {
+                    // Initialise le mode sombre en fonction du localStorage ou des préférences système
+                    if (localStorage.getItem('darkMode') !== null) {
+                        this.darkMode = localStorage.getItem('darkMode') === 'true';
+                    }
+
                     Promise.all([
                         fetch('data/devices.json').then(res => res.json()),
                         fetch('data/sections.json').then(res => res.json())
@@ -234,6 +502,11 @@
                         }).catch(error => {
                             console.error("Erreur lors du chargement des données initiales:", error);
                         });
+                },
+                
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('darkMode', this.darkMode);
                 },
 
                 prefillDevice() {
@@ -281,17 +554,32 @@
                     device.energie = device.puissance * device.duree;
                 },
 
-                get totalEnergy() {
+                get consumedEnergy() {
                     return this.userDevices.reduce((total, device) => total + device.energie, 0);
                 },
 
+                get totalEnergy() {
+                    return this.consumedEnergy * 1.1;
+                },
+
+                get sunshineCoefficient() {
+                    const prodHiver = (incl, lat) => ({
+                        0:  { nord: 0.63, milieu: 0.86, sud: 1.05 },
+                        30: { nord: 1.50, milieu: 1.73, sud: 1.95 },
+                        60: { nord: 1.60, milieu: 1.83, sud: 2.05 }
+                    }[incl][lat]);
+
+                    return prodHiver(this.panelInclination, this.locationFrance);
+                },
+
                 get requiredPower() {
-                    return this.totalEnergy / this.sunHours.winter;
+                    return this.totalEnergy / this.sunshineCoefficient;
                 },
 
                 get requiredBatteryCapacity() {
-                    const days = Math.max(1, this.autonomyDays || 1);
-                    return this.totalEnergy * days;
+                    const energyNeeded = this.totalEnergy * Math.max(1, this.autonomyDays || 1);
+                    const dod = this.batteryType === 'lithium' ? 0.85 : 0.50;
+                    return energyNeeded / dod;
                 },
 
                 get panelCount() {
@@ -313,7 +601,7 @@
                 },
 
                 get acOutputAmperage() {
-                    return (this.batteryMaxDischargePower > 0) ? this.batteryMaxDischargePower / 220 : 0;
+                    return (this.inverterOutputPower > 0) ? this.inverterOutputPower / 220 : 0;
                 },
 
                 get maxDcAmperage() {
@@ -324,8 +612,8 @@
                 },
 
                 get batteryAmperage() {
-                    if (this.batteryVoltage <= 0 || this.batteryMaxDischargePower <= 0) return 0;
-                    return this.batteryMaxDischargePower / this.batteryVoltage;
+                    if (this.batteryVoltage <= 0 || this.inverterOutputPower <= 0) return 0;
+                    return (this.inverterOutputPower * 1.3) / this.batteryVoltage;
                 },
 
                 get batteryFuseAmperage() {
